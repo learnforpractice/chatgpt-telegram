@@ -149,10 +149,10 @@ class TelegramBot:
             return False
         try:
             msgs = []
-
             async for msg in bot.send_message(user_id, message):
-                if msg == '[BEGIN]':
-                    await application.bot.send_chat_action(update.effective_chat.id, "typing")
+                if msg == '[BEGIN]\n':
+                    await self.application.bot.send_chat_action(update.effective_chat.id, "typing")
+                    continue
                 msgs.append(msg)
             await update.message.reply_text(''.join(msgs))
             return True
@@ -168,13 +168,19 @@ class TelegramBot:
             saved_questions = self.saved_questions.copy()
             for user_id, question in saved_questions.items():
                 try:
-                    logger.info("++++++++handle question: %s", question.data)
                     user_id = str(question.update.effective_user.id)
                     message = question.update.message.text
+                    logger.info("++++++++handle question: %s", message)
+                    bot = self.choose_bot(user_id)
+                    if not bot:
+                        break
                     msgs: List[str] = []
                     async for msg in bot.send_message(user_id, message):
-                        msgs.append(msg)
-                    await question.update.message.reply_text(''.join(msgs), parse_mode=telegram.constants.ParseMode.MARKDOWN_V2)
+                        if msg == '[BEGIN]\n':
+                            await self.application.bot.send_chat_action(question.update.effective_chat.id, "typing")
+                        else:
+                            msgs.append(msg)
+                    await question.update.message.reply_text(''.join(msgs))
                     handled_question.append(user_id)
                 except Exception as e:
                     logger.info("%s", str(e))
@@ -201,9 +207,6 @@ class TelegramBot:
             logger.exception(e)
             if self.developer_user_id:
                 await self.sendUserText(self.developer_conversation_id, self.developer_user_id, f"exception occur at:{time.time()}: {traceback.format_exc()}")
-
-    async def handle_group_message(self, conversation_id, user_id, data):
-        await self.send_message_to_chat_gpt2(conversation_id, user_id, data)
 
     async def close(self):
         for bot in self.bots:
