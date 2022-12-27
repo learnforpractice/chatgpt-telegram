@@ -44,7 +44,7 @@ accounts:
 If you are running a bot in a server, you need to install `Xvfb` on the server, and use `VNC` at the client side to connect to `Xvfb`. For more information, refer to [Remote_control_over_SSH](https://en.wikipedia.org/wiki/Xvfb#Remote_control_over_SSH).
 
 
-After you start this bot, send `/start` to bot to start the initialization process, wich will pop up a browser navigating to `https://chat.openai.com/chat`. On the first time you start the browser, you need to handle the login processes. Some automated processes such as auto-filling of account names and passwords will be carried out, but you will still need to manually solve CAPTCHAs during the login process.
+After you start this bot, send `/start` to bot to start the initialization process, which will pop up a browser navigating to `https://chat.openai.com/chat`. On the first time you start the browser, you need to handle the login processes. Some automated processes such as auto-filling of account names and passwords will be carried out, but you will still need to manually solve CAPTCHAs during the login process.
 
 # Acknowledgements
 
