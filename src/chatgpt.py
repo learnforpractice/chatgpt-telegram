@@ -16,9 +16,16 @@ from playwright.async_api import Page as AsyncPage
 from cf_clearance import StealthConfig
 
 
-from pymixin import log
-logger = log.get_logger(__name__)
-logger.addHandler(log.handler)
+logging.basicConfig(filename='logfile.log', level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d %(message)s')
+formatter = logging.Formatter()
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
+def get_logger(name):
+    logger = logging.getLogger(name)
+    logger.addHandler(handler)
+    return logger
 
 async def async_stealth(
     page_or_context: Union[AsyncContext, AsyncPage],

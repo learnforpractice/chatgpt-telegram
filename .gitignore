@@ -8,6 +8,7 @@ cp.sh
 .db
 *.bk
 .DS_Store
+bot-config-test.yaml
 
 # C extensions
 *.so

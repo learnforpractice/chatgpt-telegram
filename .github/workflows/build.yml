@@ -19,7 +19,7 @@ jobs:
       run:
         shell: bash
     env:
-      VERSION: 0.1.1
+      VERSION: 0.1.0
     strategy:
       matrix:
         python-version: [3.9]
@@ -52,7 +52,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            ./dist/chatgpt_mixin-${{ env.VERSION }}-py3-none-any.whl
+            ./dist/chatgpt_telegram-${{ env.VERSION }}-py3-none-any.whl
       - name: Publish a Python distribution to PyPI
         if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-18.04' }}
         uses: pypa/gh-action-pypi-publish@release/v1

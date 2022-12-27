@@ -1,4 +1,4 @@
-from . import mixinbot
+from . import telegrambot
 
 if __name__ == '__main__':
-    mixinbot.run()
+    telegrambot.run()
