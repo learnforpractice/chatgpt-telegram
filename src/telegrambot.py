@@ -46,8 +46,31 @@ class TelegramBot:
             self.developer_user_id = config['developer_user_id']
 
         self.bots: List[ChatGPTBot] = []
-        self.standby_bots: List[ChatGPTBot] = []
         self._paused = False
+
+        self.application = ApplicationBuilder().token(self.telegram_api_key).build()    
+        start_handler = CommandHandler('start', self.start)
+        self.application.add_handler(start_handler)
+        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.on_message))
+
+    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not self.bots:
+            await self.init()
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Done!")
+
+    async def on_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.message:
+            return
+
+        if not self.bots:
+            await self.init()
+
+        logger.info("++++++++update.message.chat.type: %s", update.message.chat.type)
+        chat_type = update.message.chat.type
+        if chat_type == "private":
+            asyncio.create_task(self.handle_private_message(update, context))
+        elif chat_type == "supergroup":
+            asyncio.create_task(self.handle_super_group_message(update, context))
 
     @property
     def paused(self):
@@ -114,6 +137,29 @@ class TelegramBot:
         self.save_question(update, context)
         return False
 
+    async def echo_supergroup(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = str(update.effective_user.id)
+        message = update.message.text
+        bot = self.choose_bot(user_id)
+        if not bot:
+            logger.info('no available bot')
+            self.save_question(update, context)
+            #queue message
+            return False
+        try:
+            msgs = []
+
+            async for msg in bot.send_message(user_id, message):
+                if msg == '[BEGIN]':
+                    await application.bot.send_chat_action(update.effective_chat.id, "typing")
+                msgs.append(msg)
+            await update.message.reply_text(''.join(msgs))
+            return True
+        except Exception as e:
+            logger.exception(e)
+        self.save_question(update, context)
+        return False
+
     async def handle_questions(self):
         while True:
             await asyncio.sleep(15.0)
@@ -139,9 +185,17 @@ class TelegramBot:
         user_id = str(update.effective_user.id)
         self.saved_questions[user_id] = SavedQuestion(update, context)
 
-    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def handle_private_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await self.echo(update, context)
+        except Exception as e:
+            logger.exception(e)
+            if self.developer_user_id:
+                await self.sendUserText(self.developer_conversation_id, self.developer_user_id, f"exception occur at:{time.time()}: {traceback.format_exc()}")
+
+    async def handle_super_group_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            await self.echo_supergroup(update, context)
         except Exception as e:
             logger.exception(e)
             if self.developer_user_id:
@@ -154,33 +208,18 @@ class TelegramBot:
         for bot in self.bots:
             await bot.close()
 
+    def run(self):
+        self.application.run_polling()
+
 bot: Optional[TelegramBot]  = None
-initialized: bool = False
 
 async def get_bot():
     global bot
-    global initialized
     if not bot:
         bot = TelegramBot(sys.argv[1])
-    if not initialized:
+    if not bot.bots:
         await bot.init()
-        initialized = True
     return bot
-
-def exception_handler(loop, context):
-    # loop.default_exception_handler(context)
-    logger.info("exception_handler: %s", context)
-    loop.close()
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    bot = await get_bot()
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Done!")
-
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message:
-        return
-    bot = await get_bot()
-    asyncio.create_task(bot.handle_message(update, context))
 
 async def resume():
     bot = await get_bot()
@@ -191,6 +230,7 @@ async def resume():
 def run():
     global bot
     logger.info('++++++pid: %s', os.getpid())
+    logger.info('send `/start` to the bot with telegram to initialize chatgpt')
     if len(sys.argv) < 2:
         if platform.system() == 'Windows':
             print("usage: python -m chatgpt_telegram config_file")
@@ -199,13 +239,7 @@ def run():
         return
 
     bot = TelegramBot(sys.argv[1])
-
-    application = ApplicationBuilder().token(bot.telegram_api_key).build()    
-    start_handler = CommandHandler('start', start)
-    application.add_handler(start_handler)
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-
-    application.run_polling()
+    bot.run()
 
 if __name__ == '__main__':
     run()
