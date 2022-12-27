@@ -27,6 +27,8 @@ def get_logger(name):
     logger.addHandler(handler)
     return logger
 
+logger = get_logger(__name__)
+
 async def async_stealth(
     page_or_context: Union[AsyncContext, AsyncPage],
     config: StealthConfig = None,

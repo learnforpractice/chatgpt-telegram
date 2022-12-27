@@ -16,6 +16,7 @@ setup(
     install_requires=[
         'pyyaml',
         'playwright',
-        "cf_clearance"
+        "cf_clearance",
+        'python-telegram-bot'
     ]
 )
