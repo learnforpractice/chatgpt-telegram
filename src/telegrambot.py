@@ -69,7 +69,8 @@ class TelegramBot:
         chat_type = update.message.chat.type
         if chat_type == "private":
             asyncio.create_task(self.handle_private_message(update, context))
-        elif chat_type == "supergroup":
+        # elif chat_type == "supergroup":
+        else:
             asyncio.create_task(self.handle_super_group_message(update, context))
 
     @property
