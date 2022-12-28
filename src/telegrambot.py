@@ -124,13 +124,8 @@ class TelegramBot:
             #queue message
             return False
         try:
-            count = 0
             async for msg in bot.send_message(user_id, message):
                 await update.message.reply_text(msg)
-                count += 1
-            await asyncio.sleep(1.0)
-            if count > 1:
-                pass
             await update.message.reply_text("[END]")
             return True
         except Exception as e:
