@@ -178,7 +178,7 @@ class TelegramBot:
                     await question.update.message.reply_text(''.join(msgs))
                     handled_question.append(user_id)
                 except Exception as e:
-                    logger.info("%s", str(e))
+                    logger.exception(e)
                     continue
             for question in handled_question:
                 del self.saved_questions[question]
