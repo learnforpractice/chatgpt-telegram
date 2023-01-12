@@ -125,7 +125,12 @@ class TelegramBot:
             return False
         try:
             async for msg in bot.send_message(user_id, message):
-                await update.message.reply_text(msg)
+                for _ in range(3):
+                    try:
+                        await update.message.reply_text(msg)
+                        break
+                    except Exception as e:
+                        logger.exception(e)
             await update.message.reply_text("[END]")
             return True
         except Exception as e:
