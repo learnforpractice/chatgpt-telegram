@@ -114,9 +114,10 @@ class TelegramBot:
             return None
 
     # async def echo(self, conversation_id: str, user_id: str, message: str):
-    async def echo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def echo(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
         user_id = str(update.effective_user.id)
-        message = update.message.text
+        if not message:
+            message = update.message.text
         bot = self.choose_bot(user_id)
         if not bot:
             logger.info('no available bot')
@@ -192,9 +193,9 @@ class TelegramBot:
         user_id = str(update.effective_user.id)
         self.saved_questions[user_id] = SavedQuestion(update, context)
 
-    async def handle_private_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def handle_private_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
         try:
-            await self.echo(update, context)
+            await self.echo(update, context, message)
         except Exception as e:
             logger.exception(e)
             if self.developer_user_id:
