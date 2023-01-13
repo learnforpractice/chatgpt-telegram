@@ -7,9 +7,11 @@ import asyncio
 import base64
 import logging
 import yaml
+import httpx
 import traceback
 import websockets
 import platform
+from datetime import datetime
 from typing import Optional, List, Dict, Any, Union, Set
 
 import telegram
@@ -51,12 +53,33 @@ class TelegramBot:
         self.application = ApplicationBuilder().token(self.telegram_api_key).build()    
         start_handler = CommandHandler('start', self.start)
         self.application.add_handler(start_handler)
+
+        handler = CommandHandler('web', self.search_web)
+        self.application.add_handler(handler)
+
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.on_message))
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not self.bots:
             await self.init()
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Done!")
+
+    async def search_web(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not self.bots:
+            await self.init()
+        prompt = update.message.text
+        prompt = prompt.replace("/web ", "", 1)
+        try:
+            prompt = await self.get_web_result(prompt)
+        except Exception as e:
+            logger.error(e)
+        logger.info(prompt)
+        await update.message.reply_text(prompt)
+        chat_type = update.message.chat.type
+        if chat_type == "private":
+            asyncio.create_task(self.handle_private_message(update, context, prompt))
+        else:
+            asyncio.create_task(self.handle_super_group_message(update, context, prompt))
 
     async def on_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not update.message:
@@ -113,6 +136,27 @@ class TelegramBot:
         except ValueError:
             return None
 
+    async def get_web_result(self, prompt: str):
+        date = datetime.now()
+        formatted_date = date.strftime('%m/%d/%Y')
+
+        url = f'https://ddg-webapp-aagd.vercel.app/search?max_results=3&q="{prompt}"'
+        r = httpx.get(url)
+        results: List[Any] = r.json()
+
+        counter = 0
+        querys = []
+        querys.append("Web search results:\n\n")
+        for a in results:
+            counter += 1
+            body = a['body']
+            href = a['href']
+            querys.append(f'[{counter}] "{body}"')
+            querys.append(f"Source: {href}")
+        querys.append(f"\nCurrent date: {formatted_date}")
+        querys.append(f"\nInstructions: Using the provided web search results, write a comprehensive reply to the given prompt. Make sure to cite results using [[number](URL)] notation after the reference. If the provided search results refer to multiple subjects with the same name, write separate answers for each subject.\nPrompt: {prompt}")
+        return "".join(querys)
+
     # async def echo(self, conversation_id: str, user_id: str, message: str):
     async def echo(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
         user_id = str(update.effective_user.id)
@@ -139,9 +183,10 @@ class TelegramBot:
         self.save_question(update, context)
         return False
 
-    async def echo_supergroup(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def echo_supergroup(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
         user_id = str(update.effective_user.id)
-        message = update.message.text
+        if not message:
+            message = update.message.text
         bot = self.choose_bot(user_id)
         if not bot:
             logger.info('no available bot')
@@ -201,9 +246,9 @@ class TelegramBot:
             if self.developer_user_id:
                 await self.sendUserText(self.developer_conversation_id, self.developer_user_id, f"exception occur at:{time.time()}: {traceback.format_exc()}")
 
-    async def handle_super_group_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def handle_super_group_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
         try:
-            await self.echo_supergroup(update, context)
+            await self.echo_supergroup(update, context, message)
         except Exception as e:
             logger.exception(e)
             if self.developer_user_id:
