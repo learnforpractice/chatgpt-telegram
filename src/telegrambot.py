@@ -26,9 +26,10 @@ from .chatgpt import ChatGPTBot, get_logger
 logger = get_logger(__name__)
 
 class SavedQuestion:
-    def __init__(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def __init__(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ''):
         self.update = update
         self.context = context
+        self.message = message
 
 class TelegramBot:
     def __init__(self, config_file):
@@ -114,12 +115,15 @@ class TelegramBot:
             await bot.init()
             self.bots.append(bot)
 
-    def choose_bot(self, user_id) -> ChatGPTBot:
+    def choose_bot(self, user_id) -> Optional[ChatGPTBot]:
         bots = []
         for bot in self.bots:
             if bot.standby:
                 continue
             bots.append(bot)
+
+        if not bots:
+            return None
 
         for bot in bots:
             try:
@@ -132,6 +136,7 @@ class TelegramBot:
         user_counts = [len(bot.users) for bot in bots]
         try:
             bot_index = user_counts.index(min(user_counts))
+            logger.info("++++++choose bot: %s", bots[bot_index])
             return bots[bot_index]
         except ValueError:
             return None
@@ -143,7 +148,8 @@ class TelegramBot:
         url = f'https://ddg-webapp-aagd.vercel.app/search?max_results=3&q="{prompt}"'
         r = httpx.get(url)
         results: List[Any] = r.json()
-
+        if not results:
+            return prompt
         counter = 0
         querys = []
         querys.append("Web search results:\n\n")
@@ -155,7 +161,7 @@ class TelegramBot:
             querys.append(f"Source: {href}")
         querys.append(f"\nCurrent date: {formatted_date}")
         querys.append(f"\nInstructions: Using the provided web search results, write a comprehensive reply to the given prompt. Make sure to cite results using [[number](URL)] notation after the reference. If the provided search results refer to multiple subjects with the same name, write separate answers for each subject.\nPrompt: {prompt}")
-        return "".join(querys)
+        return "\n".join(querys)
 
     # async def echo(self, conversation_id: str, user_id: str, message: str):
     async def echo(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
@@ -180,7 +186,7 @@ class TelegramBot:
             return True
         except Exception as e:
             logger.exception(e)
-        self.save_question(update, context)
+        self.save_question(update, context, message)
         return False
 
     async def echo_supergroup(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
@@ -215,10 +221,11 @@ class TelegramBot:
             for user_id, question in saved_questions.items():
                 try:
                     user_id = str(question.update.effective_user.id)
-                    message = question.update.message.text
+                    message = question.message
                     logger.info("++++++++handle question: %s", message)
                     bot = self.choose_bot(user_id)
                     if not bot:
+                        logger.info('no available bot')
                         break
                     msgs: List[str] = []
                     async for msg in bot.send_message(user_id, message):
@@ -234,9 +241,9 @@ class TelegramBot:
             for question in handled_question:
                 del self.saved_questions[question]
 
-    def save_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def save_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str=''):
         user_id = str(update.effective_user.id)
-        self.saved_questions[user_id] = SavedQuestion(update, context)
+        self.saved_questions[user_id] = SavedQuestion(update, context, message)
 
     async def handle_private_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = ""):
         try:
