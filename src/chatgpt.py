@@ -16,9 +16,10 @@ from playwright.async_api import Page as AsyncPage
 from cf_clearance import StealthConfig
 
 
+fmt='%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d %(message)s'
 logging.basicConfig(filename='logfile.log', level=logging.INFO,
-                    format='%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d %(message)s')
-formatter = logging.Formatter()
+                    format=fmt)
+formatter = logging.Formatter(fmt=fmt)
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 

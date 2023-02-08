@@ -66,21 +66,22 @@ class TelegramBot:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Done!")
 
     async def search_web(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logger.info("+++++++search_web")
         if not self.bots:
             await self.init()
-        prompt = update.message.text
-        prompt = prompt.replace("/web ", "", 1)
         try:
+            prompt = update.message.text
+            prompt = prompt.replace("/web ", "", 1)
             prompt = await self.get_web_result(prompt)
+            logger.info(prompt)
+            await update.message.reply_text(prompt)
+            chat_type = update.message.chat.type
+            if chat_type == "private":
+                asyncio.create_task(self.handle_private_message(update, context, prompt))
+            else:
+                asyncio.create_task(self.handle_super_group_message(update, context, prompt))
         except Exception as e:
             logger.error(e)
-        logger.info(prompt)
-        await update.message.reply_text(prompt)
-        chat_type = update.message.chat.type
-        if chat_type == "private":
-            asyncio.create_task(self.handle_private_message(update, context, prompt))
-        else:
-            asyncio.create_task(self.handle_super_group_message(update, context, prompt))
 
     async def on_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not update.message:
@@ -141,13 +142,18 @@ class TelegramBot:
         except ValueError:
             return None
 
-    async def get_web_result(self, prompt: str):
+    async def get_web_result(self, message: str):
         date = datetime.now()
         formatted_date = date.strftime('%m/%d/%Y')
-
-        url = f'https://ddg-webapp-aagd.vercel.app/search?max_results=3&q="{prompt}"'
+        prompt = message
+        search = message
+        if message.count('/p ') == 1:
+            search, prompt = message.split('/p ')
+        logger.info("+++++%s %s", search, prompt)
+        url = f'https://ddg-webapp-aagd.vercel.app/search?max_results=3&q="{search}"'
         r = httpx.get(url)
         results: List[Any] = r.json()
+        logger.info("++++++results: %s", results)
         if not results:
             return prompt
         counter = 0
