@@ -12,11 +12,5 @@ setup(
     packages=['chatgpt_telegram'],
     package_dir={'chatgpt_telegram': 'src'},
     package_data={},
-    setup_requires=['wheel'],
-    install_requires=[
-        'pyyaml',
-        'playwright',
-        "cf_clearance",
-        'python-telegram-bot'
-    ]
+    setup_requires=['wheel']
 )

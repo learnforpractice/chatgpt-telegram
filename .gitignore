@@ -3,6 +3,7 @@ logfile.log
 __pycache__/
 *.py[cod]
 *$py.class
+*.yaml
 
 cp.sh
 .db

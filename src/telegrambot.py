@@ -38,6 +38,7 @@ class TelegramBot:
 
         self.telegram_api_key = config['telegram_api_key']
         self.chatgpt_accounts = config['accounts']
+        self.openai_api_keys = config['openai_api_keys']
         self.tasks: List[SavedQuestion] = []
         self.saved_questions: Dict[str, SavedQuestion] = {}
 
@@ -108,13 +109,21 @@ class TelegramBot:
 
     async def init(self):
         asyncio.create_task(self.handle_questions())
-        PLAY = await async_playwright().start()
-        for account in self.chatgpt_accounts:
-            user = account['user']
-            psw = account['psw']
-            bot = ChatGPTBot(PLAY, user, psw)
-            await bot.init()
-            self.bots.append(bot)
+        if self.chatgpt_accounts:
+            PLAY = await async_playwright().start()
+            for account in self.chatgpt_accounts:
+                user = account['user']
+                psw = account['psw']
+                bot = ChatGPTBot(PLAY, user, psw)
+                await bot.init()
+                self.bots.append(bot)
+
+        if self.openai_api_keys:
+            from .chatgpt_openai import ChatGPTBot
+            for key in self.openai_api_keys:
+                bot = ChatGPTBot(key)
+                await bot.init()
+                self.bots.append(bot)
 
     def choose_bot(self, user_id) -> Optional[ChatGPTBot]:
         bots = []
