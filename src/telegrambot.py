@@ -21,7 +21,8 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
 from dataclasses import dataclass
 from playwright.async_api import async_playwright
 
-from .chatgpt import ChatGPTBot, get_logger
+from .chatgpt_browser import ChatGPTBrowserBot, get_logger
+from .chatgpt_openai import ChatGPTBot
 
 logger = get_logger(__name__)
 
@@ -114,7 +115,7 @@ class TelegramBot:
             for account in self.chatgpt_accounts:
                 user = account['user']
                 psw = account['psw']
-                bot = ChatGPTBot(PLAY, user, psw)
+                bot = ChatGPTBrowserBot(PLAY, user, psw)
                 await bot.init()
                 self.bots.append(bot)
 

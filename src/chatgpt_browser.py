@@ -107,7 +107,7 @@ class ChatGPTUser:
     def is_expired(self):
         return self.expiration < time.time()
 
-class ChatGPTBot:
+class ChatGPTBrowserBot:
 
     def __init__(self, PLAY: Any, user: str, password: str):
         self.page: Optional[Any] = None
@@ -123,12 +123,10 @@ class ChatGPTBot:
 
         self.conversation_id = None
         self.parent_message_id = None
-
         if not os.path.exists('.db'):
             os.mkdir('.db')
         self.users = shelve.open(f".db/{user}-1")
         self.expired_user = shelve.open(f".db/{user}-2")
-
         self.alive_counter = 0
 
     @property
