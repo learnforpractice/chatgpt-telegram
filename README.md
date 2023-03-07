@@ -18,6 +18,9 @@ playwright install firefox
 
 # configuration
 
+To get started, you will need at least one ChatGPT account. If you don't have one already, you can create an account at [chat.openai.com](https://chat.openai.com/chat). Additionally, you can create an api key at [platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys)." 
+
+
 You can start this bot with the following command:
 
 ```bash
@@ -34,12 +37,13 @@ which bot-config.yaml contains telegram bot configuration and chatgpt accounts a
 
 ```yaml
 telegram_api_key: ""
+openai_api_keys: []
 accounts:
  - user: ""
    psw: ""
 ```
 
-`telegram_api_key` section specify telegram bot api key. `accounts` section specify chatgpt test accounts. `user` field can not be empty, but you can leave `psw` to empty. If it is left empty, the user will need to manually enter the password upon login. Multiple accounts can be specified in the accounts section to improve ChatGPT responses.
+`telegram_api_key` section specify telegram bot api key. `openai_api_keys` section specify openai api keys.`accounts` section specify chatgpt test accounts. `user` field can not be empty, but you can leave `psw` to empty. If it is left empty, the user will need to manually enter the password upon login. Multiple accounts can be specified in the accounts section to improve ChatGPT responses.
 
 If you are running a bot in a server, you need to install `Xvfb` on the server, and use `VNC` at the client side to connect to `Xvfb`. For more information, refer to [Remote_control_over_SSH](https://en.wikipedia.org/wiki/Xvfb#Remote_control_over_SSH).
 
